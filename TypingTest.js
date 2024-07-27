@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import "./TypingTest.css"; // Import custom CSS for additional styles
-import { Howl } from "howler"; // For sound effects
 
 const texts = [
   "The quick brown fox jumps over the lazy dog.",
@@ -11,20 +10,17 @@ const texts = [
 
 const getRandomText = () => texts[Math.floor(Math.random() * texts.length)];
 
-const typingSound = new Howl({ src: ["typing.mp3"] });
-const completionSound = new Howl({ src: ["completion.mp3"] });
-
 const TypingTest = () => {
   const [text, setText] = useState(getRandomText());
   const [inputText, setInputText] = useState("");
-  const [timer, setTimer] = useState(30); // Default 30 seconds timer
+  const [timer, setTimer] = useState(30); // 30 seconds timer
+  const [timeLimit, setTimeLimit] = useState(30); // Time limit selected from dropdown
   const [startTime, setStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [speedWPM, setSpeedWPM] = useState(0);
-  const [speedWPS, setSpeedWPS] = useState(0);
+  const [speed, setSpeed] = useState(0);
+  const [wps, setWps] = useState(0); // Words per second
   const [error, setError] = useState(false);
   const [testCompleted, setTestCompleted] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(30); // Default 30 seconds
 
   useEffect(() => {
     let interval;
@@ -32,7 +28,7 @@ const TypingTest = () => {
       interval = setInterval(() => {
         const currentTime = Math.floor((Date.now() - startTime) / 1000);
         setElapsedTime(currentTime);
-        setTimer(selectedTime - currentTime);
+        setTimer(timeLimit - currentTime);
       }, 1000);
     }
 
@@ -42,7 +38,7 @@ const TypingTest = () => {
     }
 
     return () => clearInterval(interval);
-  }, [startTime, timer, selectedTime]);
+  }, [startTime, timer, timeLimit]);
 
   const handleChange = (e) => {
     const value = e.target.value;
@@ -52,36 +48,37 @@ const TypingTest = () => {
       setStartTime(Date.now());
     }
 
-    if (!testCompleted) {
-      typingSound.play(); // Play typing sound
-    }
-
     setError(value !== text.substring(0, value.length));
   };
 
   const handleTestCompletion = () => {
     setTestCompleted(true);
-    completionSound.play(); // Play completion sound
 
     const wordsTyped = inputText.trim().split(/\s+/).length;
     const timeInMinutes = elapsedTime / 60;
-    const timeInSeconds = elapsedTime;
-    const typingSpeedWPM = (wordsTyped / timeInMinutes).toFixed(2);
-    const typingSpeedWPS = (wordsTyped / timeInSeconds).toFixed(2);
-    setSpeedWPM(typingSpeedWPM);
-    setSpeedWPS(typingSpeedWPS);
+    const typingSpeed = (wordsTyped / timeInMinutes).toFixed(2);
+    const wordsPerSecond = (wordsTyped / elapsedTime).toFixed(2);
+    setSpeed(typingSpeed);
+    setWps(wordsPerSecond);
   };
 
   const resetTest = () => {
     setText(getRandomText());
     setInputText("");
-    setTimer(selectedTime);
+    setTimer(timeLimit);
     setStartTime(null);
     setElapsedTime(0);
-    setSpeedWPM(0);
-    setSpeedWPS(0);
+    setSpeed(0);
+    setWps(0);
     setError(false);
     setTestCompleted(false);
+  };
+
+  const handleTimeLimitChange = (e) => {
+    const newTimeLimit = parseInt(e.target.value);
+    setTimeLimit(newTimeLimit);
+    setTimer(newTimeLimit);
+    resetTest();
   };
 
   const getHighlightedText = () => {
@@ -109,28 +106,11 @@ const TypingTest = () => {
     });
   };
 
-  const handleTimeChange = (e) => {
-    setSelectedTime(Number(e.target.value));
-    resetTest(); // Reset the test when time limit changes
-  };
-
   return (
     <div className="container mx-auto p-4 max-w-lg">
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
         Typing Test
       </h1>
-      <div className="mb-4">
-        <label className="text-lg text-gray-600 mb-2">Select Time Limit:</label>
-        <select
-          value={selectedTime}
-          onChange={handleTimeChange}
-          className="ml-2 p-2 border border-gray-300 rounded"
-        >
-          <option value={15}>15 seconds</option>
-          <option value={30}>30 seconds</option>
-          <option value={60}>60 seconds</option>
-        </select>
-      </div>
       <div className="mb-6">
         <p className="text-lg text-gray-600 mb-2">Type the text below:</p>
         <div className="text-display bg-gray-200 p-4 border border-gray-300 rounded">
@@ -150,6 +130,18 @@ const TypingTest = () => {
         placeholder="Start typing..."
       />
       <div className="mt-4 text-center">
+        <label className="block text-gray-700 text-lg font-semibold mb-2">
+          Select Time Limit:
+        </label>
+        <select
+          onChange={handleTimeLimitChange}
+          value={timeLimit}
+          className="mb-4 p-2 border border-gray-300 rounded"
+        >
+          <option value="30">30 seconds</option>
+          <option value="60">60 seconds</option>
+          <option value="90">90 seconds</option>
+        </select>
         <p className="text-xl font-semibold">
           Time left:{" "}
           <span
@@ -164,11 +156,11 @@ const TypingTest = () => {
           <>
             <p className="mt-4 text-xl font-semibold animate__animated animate__fadeIn">
               Your typing speed:{" "}
-              <span className="text-blue-600">{speedWPM} WPM</span>
+              <span className="text-blue-600">{speed} WPM</span>
             </p>
             <p className="mt-2 text-xl font-semibold animate__animated animate__fadeIn">
-              Your typing speed:{" "}
-              <span className="text-blue-600">{speedWPS} WPS</span>
+              Words per second:{" "}
+              <span className="text-green-600">{wps} WPS</span>
             </p>
           </>
         )}
